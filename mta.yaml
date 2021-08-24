@@ -1,0 +1,94 @@
+_schema-version: "3.2"
+ID: EmployeeManager-employeemanager
+description: Employee Manager
+version: 0.0.1
+modules:
+- name: EmployeeManager-employeemanager-dest-content
+  type: com.sap.application.content
+  requires:
+  - name: EmployeeManager-employeemanager-dest-srv
+    parameters:
+      content-target: true
+  - name: EmployeeManager-employeemanager-repo-host
+    parameters:
+      service-key:
+        name: EmployeeManager-employeemanager-repo-host-key
+  - name: EmployeeManager-employeemanager-uaa
+    parameters:
+      service-key:
+        name: EmployeeManager-employeemanager-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: EmployeeManager-employeemanager_repo_host
+          ServiceInstanceName: EmployeeManager-employeemanager-html5-srv
+          ServiceKeyName: EmployeeManager-employeemanager-repo-host-key
+          sap.cloud.service: EmployeeManager-employeemanager
+        - Authentication: OAuth2UserTokenExchange
+          Name: EmployeeManager-employeemanager_uaa
+          ServiceInstanceName: EmployeeManager-employeemanager-xsuaa-srv
+          ServiceKeyName: EmployeeManager-employeemanager-uaa-key
+          sap.cloud.service: EmployeeManager-employeemanager
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: EmployeeManager-employeemanager-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: EmployeeManager-employeemanager-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - EmployeeManageremployeemanager.zip
+      name: EmployeeManageremployeemanager
+      target-path: resources/
+- name: EmployeeManageremployeemanager
+  type: html5
+  path: .
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: EmployeeManager-employeemanager-dest-srv
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: EmployeeManager-employeemanager-dest-srv
+    service-plan: lite
+- name: EmployeeManager-employeemanager-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: EmployeeManager-employeemanager-xsuaa-srv
+    service-plan: application
+- name: EmployeeManager-employeemanager-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: EmployeeManager-employeemanager-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
